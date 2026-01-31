@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For My Love ❤️</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Hide scrollbars */
+            background: linear-gradient(to bottom right, #ffafbd, #ffc3a0); /* Soft gradient background */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .heart-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .floating-heart {
+            position: absolute;
+            width: 80px; /* Base size */
+            height: 80px;
+            background-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            will-change: transform, opacity; /* Optimize animations */
+        }
+
+        .heart-svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor; /* Inherit color from parent */
+            transition: transform 0.2s ease-out; /* For pop effect */
+        }
+
+        .heart-svg:hover {
+            transform: scale(1.1);
+        }
+
+        .heart-word-text {
+            position: absolute;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white; /* Text color inside heart */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            pointer-events: none; /* Let clicks pass through to the SVG */
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            max-width: 80%; /* Prevent overflow for long words */
+            word-wrap: break-word;
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 90vw;
+            animation: fadeIn 0.3s ease-out;
+            border: 2px solid #ff6b6b; /* Accent border */
+        }
+
+        .popup.show {
+            display: flex;
+        }
+
+        .popup-word {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #e74c3c; /* Red accent */
+            margin-bottom: 10px;
+            text-transform: capitalize;
+        }
+
+        .popup-count {
+            font-size: 1.5em;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .close-button {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        .close-button:hover {
+            background-color: #e74c3c;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+
+        /* Basic heart SVG for the background-image method (if using) */
+        /* For this example, we'll embed SVG directly for color control */
+    </style>
+</head>
+<body>
+    <div class="heart-container" id="heartContainer"></div>
+
+    <div class="popup" id="wordPopup">
+        <div class="popup-word" id="popupWord"></div>
+        <div class="popup-count" id="popupCount"></div>
+        <button class="close-button" id="closePopup">Close</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const heartContainer = document.getElementById('heartContainer');
+            const wordPopup = document.getElementById('wordPopup');
+            const popupWord = document.getElementById('popupWord');
+            const popupCount = document.getElementById('popupCount');
+            const closePopup = document.getElementById('closePopup');
+
+            const heartSVG = `
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+            `;
+
+            // Function to generate random colors (pastel-ish)
+            function getRandomPastelColor() {
+                const hue = Math.floor(Math.random() * 360);
+                const saturation = Math.floor(Math.random() * 30) + 70; // 70-100% saturation
+                const lightness = Math.floor(Math.random() * 10) + 80;  // 80-90% lightness
+                return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            }
+            
+            // Generate a slightly darker color for text for better contrast if needed
+            function getContrastTextColor(backgroundColor) {
+                // This is a simplified check, could be more robust
+                // For light pastels, black text is usually fine
+                return 'black'; 
+            }
+
+            // Function to create and animate a single heart
+            function createHeart(wordData) {
+                const heart = document.createElement('div');
+                heart.classList.add('floating-heart');
+                
+                const randomSize = Math.floor(Math.random() * 40) + 60; // 60px to 100px
+                heart.style.width = `${randomSize}px`;
+                heart.style.height = `${randomSize}px`;
+                
+                const randomColor = getRandomPastelColor();
+                heart.style.color = randomColor; // Set currentColor for SVG fill
+
+                heart.style.left = `${Math.random() * (window.innerWidth - randomSize)}px`; // Random X position
+                heart.style.bottom = `-100px`; // Start off-screen
+
+                const delay = Math.random() * 10; // Random animation delay
+                const duration = Math.random() * 15 + 15; // Random animation duration (15-30s)
+                heart.style.animation = `floatUp ${duration}s linear ${delay}s infinite`;
+                
+                // Add the SVG
+                const svgWrapper = document.createElement('div');
+                svgWrapper.innerHTML = heartSVG;
+                svgWrapper.classList.add('heart-svg');
+                heart.appendChild(svgWrapper);
+
+                // Add the word text
+                const wordText = document.createElement('span');
+                wordText.classList.add('heart-word-text');
+                wordText.textContent = wordData.word.charAt(0).toUpperCase() + wordData.word.slice(1); // Capitalize first letter
+                wordText.style.fontSize = `${Math.max(0.7, randomSize / 100 * 0.9)}em`; // Scale font with heart size
+                wordText.style.color = getContrastTextColor(randomColor);
+                heart.appendChild(wordText);
+
+                heart.addEventListener('click', () => {
+                    popupWord.textContent = wordData.word.charAt(0).toUpperCase() + wordData.word.slice(1);
+                    popupCount.textContent = `You've said this word ${wordData.count} times!`;
+                    wordPopup.classList.add('show');
+                });
+
+                heartContainer.appendChild(heart);
+            }
+
+            // Fetch words from the JSON file
+            fetch('words.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(words => {
+                    // Create multiple hearts for each word, maybe repeat common words for density
+                    words.forEach(wordData => {
+                        // For more common words, create more hearts to make them appear more often
+                        const numHearts = Math.min(Math.ceil(wordData.count / words[0].count * 5), 10); // Max 10 hearts for most common
+                        for(let i = 0; i < numHearts; i++) {
+                            createHeart(wordData);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching words:', error);
+                    // Display a fallback message if JSON isn't found or parsed
+                    heartContainer.innerHTML = `
+                        <div style="text-align: center; color: #555; font-size: 1.2em; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                            Oops! Couldn't load our special words. <br>
+                            Make sure 'words.json' is in the same folder.<br><br>
+                            But just know, every word we share is precious. ❤️
+                        </div>
+                    `;
+                });
+
+            // Close popup
+            closePopup.addEventListener('click', () => {
+                wordPopup.classList.remove('show');
+            });
+        });
+    </script>
+</body>
+</html>
