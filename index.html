@@ -5,503 +5,225 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>For My Love ❤️</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden; /* Hide scrollbars */
-            background: linear-gradient(to bottom right, #ffafbd, #ffc3a0); /* Soft gradient background */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
+        #overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #ffafbd;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            z-index: 2000;
+            cursor: pointer;
+            transition: opacity 1s ease;
+            }
+        #overlay h1 {
+            color: white;
+            font-size: 2em;
+            border: 2px solid white;
+            padding: 20px;
+            border-radius: 50px;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom right, #ffafbd, #ffc3a0);
+            font-family: sans-serif;
+            height: 100vh;
         }
 
-        .heart-container {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            overflow: hidden;
+        /* THE ANIMATION - If this is missing, hearts stay off-screen! */
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-120vh) rotate(20deg); opacity: 0; }
         }
 
         .floating-heart {
             position: absolute;
-            width: 80px; /* Base size */
-            height: 80px;
-            background-color: transparent;
+            cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
-            user-select: none;
-            will-change: transform, opacity; /* Optimize animations */
+            will-change: transform;
         }
 
         .heart-svg {
             width: 100%;
             height: 100%;
-            fill: currentColor; /* Inherit color from parent */
-            transition: transform 0.2s ease-out; /* For pop effect */
-        }
-
-        .heart-svg:hover {
-            transform: scale(1.1);
+            fill: currentColor;
         }
 
         .heart-word-text {
             position: absolute;
-            font-size: 0.8em;
+            font-size: 14px;
             font-weight: bold;
-            color: white; /* Text color inside heart */
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-            pointer-events: none; /* Let clicks pass through to the SVG */
+            color: #444;
             text-align: center;
-            padding: 5px;
-            box-sizing: border-box;
-            max-width: 80%; /* Prevent overflow for long words */
-            word-wrap: break-word;
+            pointer-events: none;
         }
 
         .popup {
             position: fixed;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.95);
+            background: white;
+            padding: 20px;
             border-radius: 15px;
-            padding: 30px 40px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
             display: none;
-            flex-direction: column;
-            align-items: center;
+            z-index: 100;
             text-align: center;
-            max-width: 90vw;
-            animation: fadeIn 0.3s ease-out;
-            border: 2px solid #ff6b6b; /* Accent border */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-        .popup.show {
-            display: flex;
-        }
-
-        .popup-word {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #e74c3c; /* Red accent */
-            margin-bottom: 10px;
-            text-transform: capitalize;
-        }
-
-        .popup-count {
-            font-size: 1.5em;
-            color: #555;
-            margin-bottom: 20px;
-        }
-
-        .close-button {
-            background-color: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
-        }
-
-        .close-button:hover {
-            background-color: #e74c3c;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -60%); }
-            to { opacity: 1; transform: translate(-50%, -50%); }
-        }
-
-        /* Basic heart SVG for the background-image method (if using) */
-        /* For this example, we'll embed SVG directly for color control */
+        .show { display: block; }
     </style>
 </head>
 <body>
-    <div class="heart-container" id="heartContainer"></div>
+    <audio id="bgMusic" loop>
+    <source src="boygenius_-_You_re_Still_The_One_Shania_Twain_Cover_._128kbps.mp4" type="audio/mpeg">
+    </audio>
+    
+    <div id="overlay" onclick="startEverything()">
+    <h1>Click to Open Your Gift ❤️</h1>
+    </div>
 
+    <div id="heartContainer"></div>
+    
     <div class="popup" id="wordPopup">
-        <div class="popup-word" id="popupWord"></div>
-        <div class="popup-count" id="popupCount"></div>
-        <button class="close-button" id="closePopup">Close</button>
+        <h2 id="popupWord"></h2>
+        <p id="popupCount"></p>
+        <button onclick="document.getElementById('wordPopup').classList.remove('show')">Close</button>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const heartContainer = document.getElementById('heartContainer');
-            const wordPopup = document.getElementById('wordPopup');
-            const popupWord = document.getElementById('popupWord');
-            const popupCount = document.getElementById('popupCount');
-            const closePopup = document.getElementById('closePopup');
+        const music = document.getElementById('bgMusic');
+        const overlay = document.getElementById('overlay');
 
-            const heartSVG = `
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                </svg>
-            `;
+        function startEverything() {
+            // 1. Play the music
+            music.play().catch(error => console.log("Audio play failed:", error));
 
-            // Function to generate random colors (pastel-ish)
-            function getRandomPastelColor() {
-                const hue = Math.floor(Math.random() * 360);
-                const saturation = Math.floor(Math.random() * 30) + 70; // 70-100% saturation
-                const lightness = Math.floor(Math.random() * 10) + 80;  // 80-90% lightness
-                return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-            }
-            
-            // Generate a slightly darker color for text for better contrast if needed
-            function getContrastTextColor(backgroundColor) {
-                // This is a simplified check, could be more robust
-                // For light pastels, black text is usually fine
-                return 'black'; 
-            }
+            // 2. Hide the overlay
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 1000);
 
-            // Function to create and animate a single heart
-            function createHeart(wordData) {
-                const heart = document.createElement('div');
-                heart.classList.add('floating-heart');
-                
-                const randomSize = Math.floor(Math.random() * 40) + 60; // 60px to 100px
-                heart.style.width = `${randomSize}px`;
-                heart.style.height = `${randomSize}px`;
-                
-                const randomColor = getRandomPastelColor();
-                heart.style.color = randomColor; // Set currentColor for SVG fill
-
-                heart.style.left = `${Math.random() * (window.innerWidth - randomSize)}px`; // Random X position
-                heart.style.bottom = `-100px`; // Start off-screen
-
-                const delay = Math.random() * 10; // Random animation delay
-                const duration = Math.random() * 15 + 15; // Random animation duration (15-30s)
-                heart.style.animation = `floatUp ${duration}s linear ${delay}s infinite`;
-                
-                // Add the SVG
-                const svgWrapper = document.createElement('div');
-                svgWrapper.innerHTML = heartSVG;
-                svgWrapper.classList.add('heart-svg');
-                heart.appendChild(svgWrapper);
-
-                // Add the word text
-                const wordText = document.createElement('span');
-                wordText.classList.add('heart-word-text');
-                wordText.textContent = wordData.word.charAt(0).toUpperCase() + wordData.word.slice(1); // Capitalize first letter
-                wordText.style.fontSize = `${Math.max(0.7, randomSize / 100 * 0.9)}em`; // Scale font with heart size
-                wordText.style.color = getContrastTextColor(randomColor);
-                heart.appendChild(wordText);
-
-                heart.addEventListener('click', () => {
-                    popupWord.textContent = wordData.word.charAt(0).toUpperCase() + wordData.word.slice(1);
-                    popupCount.textContent = `You've said this word ${wordData.count} times!`;
-                    wordPopup.classList.add('show');
+            // 3. Start creating hearts
+            if (wordsData.length > 0) {
+                wordsData.forEach(w => {
+                    for(let i=0; i<3; i++) createHeart(w);
                 });
-
-                heartContainer.appendChild(heart);
             }
+        }
+        const wordsData = [
+            {"word": "ethan", "count": 5735},
+            {"word": "mesh", "count": 5231},
+            {"word": "love", "count": 164},
+            {"word": "also", "count": 164},
+            {"word": "very", "count": 129},
+            {"word": "see", "count": 128},
+            {"word": "them", "count": 126},
+            {"word": "then", "count": 126},
+            {"word": "same", "count": 124},
+            {"word": "now", "count": 119},
+            {"word": "all", "count": 118},
+            {"word": "too", "count": 118},
+            {"word": "much", "count": 117},
+            {"word": "heheheh", "count": 115},
+            {"word": "hehe", "count": 111},
+            {"word": "omg", "count": 108},
+            {"word": "did", "count": 104},
+            {"word": "about", "count": 101},
+            {"word": "there", "count": 100},
+            {"word": "cute", "count": 99},
+            {"word": "hehehehe", "count": 98},
+            {"word": "oke", "count": 94},
+            {"word": "why", "count": 92},
+            {"word": "pls", "count": 91},
+            {"word": "wait", "count": 90},
+            {"word": "look", "count": 90},
+            {"word": "thank", "count": 89},
+            {"word": "more", "count": 87},
+            {"word": "feel", "count": 84},
+            {"word": "were", "count": 82},
+            {"word": "make", "count": 82},
+            {"word": "only", "count": 81},
+            {"word": "should", "count": 80},
+            {"word": "damn", "count": 79},
+            {"word": "got", "count": 78},
+            {"word": "wanna", "count": 77},
+            {"word": "hehehhehe", "count": 75},
+            {"word": "even", "count": 74},
+            {"word": "some", "count": 70},
+            {"word": "heheheheh", "count": 70},
+            {"word": "here", "count": 69},
+            {"word": "well", "count": 67},
+            {"word": "take", "count": 67},
+            {"word": "nice", "count": 66},
+            {"word": "call", "count": 66},
+            {"word": "say", "count": 65},
+            {"word": "back", "count": 65},
+            {"word": "hehehe", "count": 65},
+            {"word": "send", "count": 63},
+            {"word": "makes", "count": 63},
+            {"word": "still", "count": 61},
+            {"word": "best", "count": 59},
+            {"word": "awww", "count": 58},
+            {"word": "need", "count": 57},
+            {"word": "hahahhaha", "count": 56},
+            {"word": "right", "count": 56},
+            {"word": "hahahahha", "count": 56},
+            {"word": "sleep", "count": 56},
+            {"word": "work", "count": 56},
+            {"word": "has", "count": 54},
+            {"word": "eat", "count": 54},
+            {"word": "never", "count": 53},
+            {"word": "her", "count": 52},
+            {"word": "didnt", "count": 52},
+            {"word": "maybe", "count": 51}
+        ];
 
-            // Fetch words from the JSON file
-            // Open your words.json, copy everything inside, and paste it here
-            const wordsData = [
-                {
-                    "word": "ethan",
-                    "count": 5735
-                },
-                {
-                    "word": "mesh",
-                    "count": 5231
-                },
-                {
-                    "word": "don",
-                    "count": 270
-                },
-                {
-                    "word": "one",
-                    "count": 191
-                },
-                {
-                    "word": "not",
-                    "count": 183
-                },
-                {
-                    "word": "love",
-                    "count": 164
-                },
-                {
-                    "word": "also",
-                    "count": 164
-                },
-                {
-                    "word": "media",
-                    "count": 159
-                },
-                {
-                    "word": "omitted",
-                    "count": 158
-                },
-                {
-                    "word": "very",
-                    "count": 129
-                },
-                {
-                    "word": "see",
-                    "count": 128
-                },
-                {
-                    "word": "them",
-                    "count": 126
-                },
-                {
-                    "word": "then",
-                    "count": 126
-                },
-                {
-                    "word": "same",
-                    "count": 124
-                },
-                {
-                    "word": "now",
-                    "count": 119
-                },
-                {
-                    "word": "all",
-                    "count": 118
-                },
-                {
-                    "word": "too",
-                    "count": 118
-                },
-                {
-                    "word": "much",
-                    "count": 117
-                },
-                {
-                    "word": "heheheh",
-                    "count": 115
-                },
-                {
-                    "word": "hehe",
-                    "count": 111
-                },
-                {
-                    "word": "omg",
-                    "count": 108
-                },
-                {
-                    "word": "did",
-                    "count": 104
-                },
-                {
-                    "word": "about",
-                    "count": 101
-                },
-                {
-                    "word": "there",
-                    "count": 100
-                },
-                {
-                    "word": "cute",
-                    "count": 99
-                },
-                {
-                    "word": "hehehehe",
-                    "count": 98
-                },
-                {
-                    "word": "oke",
-                    "count": 94
-                },
-                {
-                    "word": "why",
-                    "count": 92
-                },
-                {
-                    "word": "pls",
-                    "count": 91
-                },
-                {
-                    "word": "wait",
-                    "count": 90
-                },
-                {
-                    "word": "look",
-                    "count": 90
-                },
-                {
-                    "word": "thank",
-                    "count": 89
-                },
-                {
-                    "word": "more",
-                    "count": 87
-                },
-                {
-                    "word": "feel",
-                    "count": 84
-                },
-                {
-                    "word": "were",
-                    "count": 82
-                },
-                {
-                    "word": "make",
-                    "count": 82
-                },
-                {
-                    "word": "only",
-                    "count": 81
-                },
-                {
-                    "word": "should",
-                    "count": 80
-                },
-                {
-                    "word": "damn",
-                    "count": 79
-                },
-                {
-                    "word": "got",
-                    "count": 78
-                },
-                {
-                    "word": "wanna",
-                    "count": 77
-                },
-                {
-                    "word": "hehehhehe",
-                    "count": 75
-                },
-                {
-                    "word": "even",
-                    "count": 74
-                },
-                {
-                    "word": "some",
-                    "count": 70
-                },
-                {
-                    "word": "heheheheh",
-                    "count": 70
-                },
-                {
-                    "word": "here",
-                    "count": 69
-                },
-                {
-                    "word": "well",
-                    "count": 67
-                },
-                {
-                    "word": "take",
-                    "count": 67
-                },
-                {
-                    "word": "nice",
-                    "count": 66
-                },
-                {
-                    "word": "call",
-                    "count": 66
-                },
-                {
-                    "word": "say",
-                    "count": 65
-                },
-                {
-                    "word": "back",
-                    "count": 65
-                },
-                {
-                    "word": "hehehe",
-                    "count": 65
-                },
-                {
-                    "word": "send",
-                    "count": 63
-                },
-                {
-                    "word": "makes",
-                    "count": 63
-                },
-                {
-                    "word": "still",
-                    "count": 61
-                },
-                {
-                    "word": "best",
-                    "count": 59
-                },
-                {
-                    "word": "awww",
-                    "count": 58
-                },
-                {
-                    "word": "need",
-                    "count": 57
-                },
-                {
-                    "word": "hahahhaha",
-                    "count": 56
-                },
-                {
-                    "word": "right",
-                    "count": 56
-                },
-                {
-                    "word": "hahahahha",
-                    "count": 56
-                },
-                {
-                    "word": "sleep",
-                    "count": 56
-                },
-                {
-                    "word": "work",
-                    "count": 56
-                },
-                {
-                    "word": "has",
-                    "count": 54
-                },
-                {
-                    "word": "eat",
-                    "count": 54
-                },
-                {
-                    "word": "never",
-                    "count": 53
-                },
-                {
-                    "word": "her",
-                    "count": 52
-                },
-                {
-                    "word": "didn",
-                    "count": 52
-                },
-                {
-                    "word": "maybe",
-                    "count": 51
-                }
-            ];
+        const container = document.getElementById('heartContainer');
+        const heartSVG = `<svg class="heart-svg" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+
+        function createHeart(data) {
+            const heart = document.createElement('div');
+            heart.className = 'floating-heart';
             
-            // This replaces the .then() logic
-            wordsData.forEach(wordData => {
-                const numHearts = Math.min(Math.ceil(wordData.count / wordsData[0].count * 5), 10);
-                for(let i = 0; i < numHearts; i++) {
-                    createHeart(wordData);
-                }
-            });
+            // Randomize appearance
+            const size = Math.floor(Math.random() * 30) + 70;
+            heart.style.width = size + 'px';
+            heart.style.height = size + 'px';
+            heart.style.left = Math.random() * 90 + 'vw';
+            heart.style.bottom = '-100px';
+            heart.style.color = `hsl(${Math.random() * 360}, 70%, 80%)`;
+            
+            // Randomize animation
+            const duration = Math.random() * 10 + 10;
+            const delay = Math.random() * 10;
+            heart.style.animation = `floatUp ${duration}s linear ${delay}s infinite`;
 
-            // Close popup
-            closePopup.addEventListener('click', () => {
-                wordPopup.classList.remove('show');
+            heart.innerHTML = heartSVG + `<span class="heart-word-text">${data.word}</span>`;
+
+            heart.onclick = () => {
+                document.getElementById('popupWord').innerText = data.word;
+                document.getElementById('popupCount').innerText = "We said this " + data.count + " times!";
+                document.getElementById('wordPopup').classList.add('show');
+            };
+
+            container.appendChild(heart);
+        }
+
+        // Initialize
+        if (wordsData.length > 0) {
+            wordsData.forEach(w => {
+                // Create 3 hearts for every word in your list
+                for(let i=0; i<3; i++) createHeart(w);
             });
-        });
+        } else {
+            alert("The wordsData array is empty!");
+        }
     </script>
 </body>
-
 </html>
