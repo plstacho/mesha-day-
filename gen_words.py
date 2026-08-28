@@ -12,7 +12,7 @@ def get_most_used_words(file_path):
         "okay", "lol", "hahaha", "haha", "yeah", "hey", "hi", "hello", "good",
         "day", "like", "know", "think", "really", "want", "time", "if", "or",
         "be", "been", "have", "had", "are", "by", "this", "your", "its", "im", "am", "pm",
-        "gt", "okay", "ya", "na", "wo"
+        "gt", "okay", "ya", "na", "wo", "ethan", "mesha", 'mesh', 'media', 'omitted'
     }
 
     with open(file_path, 'r', encoding='utf-8-sig') as file:
